@@ -3,7 +3,7 @@
 This script dumps a list of a Wikimedia website category entries into a text file separated by lines.
 
 
-#Usage
+# Usage
 
 ```
 python ./dwc.py url file [filter] [-r]
