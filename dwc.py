@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
 try:
-  from urllib2 import urlopen, quote
+  from urllib2 import urlopen, quote, unquote
   from urlparse import urlparse
 except ImportError:
-  from urllib.request import urlopen, quote, urlparse
+  from urllib.request import urlopen, quote, unquote, urlparse
 from posixpath import basename
 import sys
 import re
@@ -17,13 +17,16 @@ recursive = (sys.argv.count('-r')>0)
 filter = sys.argv[3] if (len(sys.argv)>3) else ""
 limit = 500
 
+output = open(sys.argv[2],"wb")
+
 catscomplete = {}
 def dumpcat(cat):
   if(cat in catscomplete): return #to avoid an infinite recursion
-  ecat = quote(cat)
+  #ecat = quote(cat)  #uncomment to encode the url as html entities
+  ecat = cat
   catinfo = json.loads(urlopen(host+"/w/api.php?format=json&action=query&prop=categoryinfo&titles="+ecat).read().decode("utf-8"))
   catsize = list(catinfo[u'query'][u'pages'].values())[0][u'categoryinfo'][u'size']
-  print("\n"+cat+":\n")
+  print("\n"+unquote(cat)+":\n")
   tail = ""
   processed = 0
   subcats = []
@@ -33,7 +36,7 @@ def dumpcat(cat):
     pages = data[u'query'][u'categorymembers']
     for page in pages:
       title = page[u'title']
-      if title.startswith(u'Category:'):
+      if title.startswith(catnamespace):
         subcats.append(title)
       elif not ( (filter != "") and (re.search(filter, title)) ):
         output.write((title+'\n').encode('utf8'))
@@ -45,12 +48,17 @@ def dumpcat(cat):
   catscomplete[cat] = True
   if recursive:
     for subcat in subcats:
-      dumpcat(subcat)
+      dumpcat(quote(subcat))
 
-output = open(sys.argv[2],"wb")
+
 url = urlparse(sys.argv[1])
 host = url.scheme+"://"+url.netloc
-dumpcat(basename(url.path))
+
+catns = json.loads(urlopen(host+"/w/api.php?action=query&format=json&meta=siteinfo&siprop=namespaces").read().decode("utf-8"))[u'query'][u'namespaces'][u'14']
+catnamespace = catns[u'*'] if (catns[u'canonical'] == u'Category') else "Category"  # localized word for category
+
+#dumpcat(basename(url.path))
+dumpcat(re.sub('/wiki/',"",url.path))
 
 if(output.tell()>0):
   output.seek(-1,1)
