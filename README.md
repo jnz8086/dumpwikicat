@@ -1,6 +1,6 @@
 
 
-This script dumps a list of a Wikimedia website category entries into a text file separated by lines.
+This script dumps a list of category entries of a MediaWiki based website into a text file separated by lines.
 
 
 # Usage
